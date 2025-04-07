@@ -30,7 +30,8 @@ describe("Order repository unit tests", () => {
             await sequelize.close();
         });
 
-        it("Should create new order ", async () =>{
+        const createNewOrder = async () => {
+
             const customerRepository = new CustomerRepository();
             const address = new Address("Street 1", 1, "Zipcode", "City");
             const customer = new Customer("123", "John");
@@ -50,6 +51,11 @@ describe("Order repository unit tests", () => {
 
             await orderRepository.create(order);
 
+            return order;
+        }
+
+        it("Should create new order ", async () =>{
+            const order = await createNewOrder();
             const orderModel = await OrderModel.findOne({
                 where: {
                     id: order.id
@@ -66,15 +72,56 @@ describe("Order repository unit tests", () => {
                 items: [
                     {
                         id: "1",
-                        product_id: orderItem.productId,
+                        product_id: order.items[0].productId,
                         order_id: "123",
-                        quantity: orderItem.quantity,
-                        name: orderItem.name,
-                        price: orderItem.price
+                        quantity: order.items[0].quantity,
+                        name: order.items[0].name,
+                        price: order.items[0].price
 
                     }
                 ]
             })
 
+        });
+
+        it("Should update order", async () => {
+            const order = await createNewOrder();
+            const orderRepository = new OrderRepository();
+            order.items.push( new OrderItem("3", "123", "Product 35", 10, 2));
+            await orderRepository.update(order);
+            const orderModel = await OrderModel.findOne({
+                where: {
+                    id: order.id
+                },
+                include: [
+                    "items"
+                ],
+            });
+
+            expect(orderModel).toMatchObject({
+                id: "123",
+                customer_id: "123",
+                total: order.total(),
+                items: [
+                    {
+                        id: "1",
+                        product_id: order.items[0].productId,
+                        order_id: "123",
+                        quantity: order.items[0].quantity,
+                        name: order.items[0].name,
+                        price: order.items[0].price
+
+                    },
+                    {
+                        id: "3",
+                        product_id: order.items[1].productId,
+                        order_id: "123",
+                        quantity: order.items[1].quantity,
+                        name: order.items[1].name,
+                        price: order.items[1].price
+
+                    }
+                ]
+            })
         });
 });
